@@ -1,124 +1,117 @@
 import json
-print('Welcome to simple todo app.\n\n'.center(50))
-tasks = []
-users = dict()
 
-main_menu = '''1. Display tasks
-2. Add task
-3. Remove task by index.
-4. Quit'''
+todos = []
+users = []
+current_user = None
 
+def load_data(filename):
+    try:
+        with open(filename, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
-def add_task(task):
-    if task not in tasks:
-        tasks.append(task)
-        print(f"Task '{task}' added\n")
-    else:
-        print('Tasks already have task.\n')
+def save_data(filename, data):
+    with open(filename, "w") as f:
+        json.dump(data, f)
 
+def register_user(username, password):
+    for user in users:
+        if user['username'] == username:
+            return None
+    new_user = {'username': username, 'password': password, 'tasks': []}
+    users.append(new_user)
+    save_data("users.json", users)
+    return new_user
 
-def remove_task(idx):
-    if idx < len(tasks):
-        task = tasks.pop(idx)
-        print(f"Task '{task}' removed.\n")
-    else:
-        print('Invalid task or id\n')
+def login_user(username, password):
+    for user in users:
+        if user['username'] == username and user['password'] == password:
+            return user
+    return None
 
+def add_task(task, user):
+    user['tasks'].append(task)
+    save_data("users.json", users)
 
-def display_tasks():
-    for idx, task in enumerate(tasks):
-        print(f'{idx}: {task}')
-    if len(tasks) == 0:
-        print("You have no tasks")
-    print()
+def remove_task(index, user):
+    if 0 <= index < len(user['tasks']):
+        user['tasks'].pop(index)
+        save_data("users.json", users)
 
+def mark_complete(index, user):
+    if 0 <= index < len(user['tasks']):
+        task = user['tasks'][index]
+        user['tasks'][index] = (task[0], True)
+        save_data("users.json", users)
 
-def run(username):
+def list_tasks(user):
+    for i, (task, is_complete) in enumerate(user['tasks']):
+        status = "Done" if is_complete else "Pending"
+        print(f"{i}. {task} - {status}")
+
+def main():
+    global users, current_user
+    users = load_data("users.json")
+
     while True:
-        print(main_menu)
+        print("\nTo-Do App")
+        if not current_user:
+            print("1. Register")
+            print("2. Login")
+            print("3. Exit")
+            choice = input("Enter your choice: ")
 
-        choice = input('>>> ')
-
-        if choice == '1':
-            display_tasks()
-        elif choice == '2':
-            task = input('Enter task: ')
-            add_task(task)
-        elif choice == '3':
-            idx = input('Enter index of task: ')
-            remove_task(idx)
-        elif choice == '4':
-            users[username] = tasks
-            file = open("tasks.json", "w", encoding="utf-8")
-            file.write(str(users))
-            break
-        else:
-            print('invalid choice.')
-
-def login():
-    print("Welcome our log in page, pleasse fill in the following lines(Username, Password)")
-    username = input("Pleasse input here your username: ")
-    password = input("Pleasse input here your password: ")
-    f = open("logins_passwords.json", "r", encoding="utf-8")
-    file = json.load(f)
-    t = open("tasks.json", "r", encoding="utf-8")
-    task = json.load(t)
-    if username in file.keys() and password in file.values():
-        print("The login completed successfully")
-        if username in task.keys():
-            if len(task.values()) != 0:
-                print("There are your tasks")
-                print(task[username])
-                run(username)
+            if choice == "1":
+                username = input("Enter username: ")
+                password = input("Enter password: ")
+                user = register_user(username, password)
+                if user:
+                    print("Registration successful!")
+                    current_user = user
+                else:
+                    print("Username already exists.")
+            elif choice == "2":
+                username = input("Enter username: ")
+                password = input("Enter password: ")
+                user = login_user(username, password)
+                if user:
+                    print("Login successful!")
+                    current_user = user
+                else:
+                    print("Invalid credentials.")
+            elif choice == "3":
+                print("Goodbye!")
+                break
             else:
-                print("You have not any tasks")
-                print("Just add it")
-                run(username)
-                
-    else:
-        print("The username or password is invalid.")
-        print("If you have no one account just create it.")
-        create = input("If you have an account type 'y', if no type 'n': ")
-        if create == "y":
-            login()
-        elif create == "n":
-            registration()
-    f.close()
-    t.close()
+                print("Invalid choice. Please try again.")
+        else:
+            print(f"Logged in as {current_user['username']}")
+            print("1. Add task")
+            print("2. Remove task")
+            print("3. Mark task as complete")
+            print("4. List tasks")
+            print("5. Logout")
+            choice = input("Enter your choice: ")
 
+            if choice == "1":
+                task = input("Enter task: ")
+                add_task((task, False), current_user)
+            elif choice == "2":
+                list_tasks(current_user)
+                index = int(input("Enter index of task to remove: "))
+                remove_task(index, current_user)
+            elif choice == "3":
+                list_tasks(current_user)
+                index = int(input("Enter index of task to mark as complete: "))
+                mark_complete(index, current_user)
+            elif choice == "4":
+                list_tasks(current_user)
+            elif choice == "5":
+                current_user = None
+                print("Logged out successfully!")
+            else:
+                print("Invalid choice. Please try again.")
 
-
-
-def registration():
-    print("Welcome our registration page, pleasse fill in the following lines(Username, Password):")
-    username = input("Pleasse input here your username: ")
-    password = input("Pleasse input here your password: ")
-    users[username] = password
-    log = False
-    file = open("logins_passwords.json", "r", encoding="utf-8")
-    f = json.load(file)
-    if username not in f.keys():
-        log = True
-    else:
-        print("Your Username is already exists (if it yours) just log in.")
-        print()
-        login()
-    file.close()
-    file = open("logins_passwords.json", "a", encoding="utf-8")
-    if log:
-        json.dump(users, file)
-        print("The registration completed successfully: ")
-        print("Now you can add or remove your tasks: ")
-        print()
-        run(username)
-    file.close()
-
-
-registration()
-
-
-    
-        
-
-
-
+if __name__ == "__main__":
+    main()
