@@ -1,9 +1,11 @@
 import json
 
+# Initialize empty lists for todos, users, and current_user
 todos = []
 users = []
 current_user = None
 
+# Function to load data from a JSON file
 def load_data(filename):
     try:
         with open(filename, "r") as f:
@@ -11,10 +13,12 @@ def load_data(filename):
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
+# Function to save data to a JSON file
 def save_data(filename, data):
     with open(filename, "w") as f:
         json.dump(data, f)
 
+# Function to register a new user
 def register_user(username, password):
     for user in users:
         if user['username'] == username:
@@ -24,32 +28,38 @@ def register_user(username, password):
     save_data("users.json", users)
     return new_user
 
+# Function to login a user
 def login_user(username, password):
     for user in users:
         if user['username'] == username and user['password'] == password:
             return user
     return None
 
+# Function to add a task to a user's task list
 def add_task(task, user):
     user['tasks'].append(task)
     save_data("users.json", users)
 
+# Function to remove a task from a user's task list
 def remove_task(index, user):
     if 0 <= index < len(user['tasks']):
         user['tasks'].pop(index)
         save_data("users.json", users)
 
+# Function to mark a task as complete in a user's task list
 def mark_complete(index, user):
     if 0 <= index < len(user['tasks']):
         task = user['tasks'][index]
         user['tasks'][index] = (task[0], True)
         save_data("users.json", users)
 
+# Function to list tasks for a user
 def list_tasks(user):
     for i, (task, is_complete) in enumerate(user['tasks']):
         status = "Done" if is_complete else "Pending"
         print(f"{i}. {task} - {status}")
 
+# Main function to run the To-Do App
 def main():
     global users, current_user
     users = load_data("users.json")
